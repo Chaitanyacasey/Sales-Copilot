@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sales Copilot</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: #0F172A; color: #F8FAFC; padding: 32px; max-width: 1200px; margin: 0 auto; }
+    
+    header { margin-bottom: 24px; }
+    h1 { font-size: 28px; font-weight: 700; color: #F8FAFC; display: flex; align-items: center; gap: 8px; }
+    .subtitle { color: #94A3B8; font-size: 14px; margin-top: 4px; }
+    
+    .nav-tabs { display: flex; gap: 8px; border-bottom: 1px solid #334155; margin-bottom: 24px; padding-bottom: 8px; }
+    .tab-btn { background: none; border: none; color: #94A3B8; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; }
+    .tab-btn.active { background: #1E293B; color: #3B82F6; }
+    
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    
+    .card { background: #1E293B; border: 1px solid #334155; border-radius: 10px; padding: 20px; margin-bottom: 16px; }
+    .card-title { font-size: 16px; font-weight: 600; color: #F8FAFC; margin-bottom: 12px; }
+    
+    label { font-size: 13px; color: #94A3B8; display: block; margin-bottom: 6px; }
+    select, input { width: 100%; background: #0F172A; border: 1px solid #334155; color: #F8FAFC; padding: 10px 14px; border-radius: 6px; font-size: 14px; margin-bottom: 16px; }
+    
+    .badge { background: #3B82F6; color: #FFFFFF; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 12px; display: inline-block; margin-bottom: 8px; }
+    .badge-green { background: #10B981; color: #FFFFFF; font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 12px; }
+    
+    ul { padding-left: 20px; color: #CBD5E1; font-size: 14px; line-height: 1.6; }
+    
+    .prop-card { background: #0F172A; border: 1px solid #334155; border-radius: 8px; padding: 14px; margin-top: 10px; }
+    .prop-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+    .prop-title { font-weight: 600; font-size: 14px; color: #F8FAFC; }
+    .prop-sub { color: #94A3B8; font-size: 12px; margin-bottom: 6px; }
+    
+    .info-box { background: rgba(59, 130, 246, 0.1); border: 1px solid #3B82F6; border-radius: 6px; padding: 12px; font-size: 13px; color: #93C5FD; margin-top: 16px; }
+    
+    table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+    th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid #334155; font-size: 13px; }
+    th { color: #94A3B8; font-weight: 600; background: #0F172A; }
+    td { color: #CBD5E1; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>⚡ Sales Copilot</h1>
+    <div class="subtitle">RAG-powered assistant for real estate sales calls</div>
+  </header>
+
+  <div class="nav-tabs">
+    <button class="tab-btn active" onclick="switchTab('copilot')">💬 Live Copilot</button>
+    <button class="tab-btn" onclick="switchTab('briefs')">📋 Call Briefs</button>
+    <button class="tab-btn" onclick="switchTab('listings')">🏡 Property Listings</button>
+  </div>
+
+  <!-- TAB 1: LIVE COPILOT -->
+  <div id="tab-copilot" class="tab-content active">
+    <div class="grid">
+      <div>
+        <div class="card">
+          <label>Select Active Lead</label>
+          <select id="lead-select" onchange="updateCopilot()">
+            <option value="4092">Sarah Jenkins (Institutional Investor)</option>
+            <option value="8103">Marcus Vance (Family Office)</option>
+            <option value="1240">Elena Rostova (Industrial REIT)</option>
+          </select>
+
+          <div id="lead-details"></div>
+        </div>
+
+        <div class="card">
+          <label>Live Call Notes / Query Input</label>
+          <input type="text" id="query-input" placeholder="Type buyer requirements..." oninput="updateCopilot()">
+        </div>
+      </div>
+
+      <div>
+        <div class="card">
+          <span class="badge">Buyer Motivations</span>
+          <ul id="motivations-list"></ul>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Matching Properties</div>
+          <div id="matched-props"></div>
+
+          <div class="info-box" id="pitch-cue"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 2: CALL BRIEFS -->
+  <div id="tab-briefs" class="tab-content">
+    <div class="card" style="margin-bottom: 16px;">
+      <label>Select Scheduled Brief</label>
+      <select id="brief-select" onchange="updateBrief()">
+        <option value="4092">Sarah Jenkins — 10:30 AM EST</option>
+        <option value="8103">Marcus Vance — 11:45 AM EST</option>
+        <option value="1240">Elena Rostova — 02:15 PM EST</option>
+      </select>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <span class="badge">Lead Summary</span>
+        <h3 id="brief-name" style="margin-top: 10px; margin-bottom: 4px;"></h3>
+        <p id="brief-meta" style="color: #94A3B8; font-size: 13px; margin-bottom: 12px;"></p>
+        <p id="brief-budget" style="font-size: 14px; margin-bottom: 4px;"></p>
+        <p id="brief-cap" style="font-size: 14px; margin-bottom: 4px;"></p>
+        <p id="brief-zoning" style="font-size: 14px;"></p>
+      </div>
+
+      <div class="card">
+        <span class="badge">Interaction Log History</span>
+        <div id="brief-logs" style="margin-top: 12px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TAB 3: LISTINGS DATABASE -->
+  <div id="tab-listings" class="tab-content">
+    <div class="card">
+      <div class="card-title">Property Listings Database</div>
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Title</th>
+            <th>Address</th>
+            <th>Zoning</th>
+            <th>Price</th>
+            <th>Cap Rate</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="listings-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const leads = {
+      "4092": {
+        name: "Sarah Jenkins",
+        type: "Institutional Investor",
+        budget: "$12.5M - $18.0M",
+        cap: "7.2%+",
+        zoning: "Commercial / Mixed Use",
+        time: "10:30 AM EST",
+        motivations: [
+          "Hard cap rate floor > 7.0%",
+          "Prefers steady cash flow over speculative appreciation",
+          "Wants pre-vetted compliance for fast closing"
+        ],
+        logs: [
+          "Email: Interested in multi-family and mixed-use commercial assets.",
+          "Phone: Wants properties with minimal CapEx requirement.",
+          "Chat: Target IRR is 14% with 5+ year holding period."
+        ]
+      },
+      "8103": {
+        name: "Marcus Vance",
+        type: "Family Office",
+        budget: "$5.0M - $8.5M",
+        cap: "6.8%+",
+        zoning: "High Density Residential",
+        time: "11:45 AM EST",
+        motivations: [
+          "Urgent 1031 Exchange deadline (45 days)",
+          "Values rent upside over current yield",
+          "Prefers fully occupied buildings with under-market leases"
+        ],
+        logs: [
+          "WhatsApp: Looking for 20-50 unit residential complexes.",
+          "Email: Asked about short-term lease roll-offs.",
+          "Phone: Motivated by tax-deferred 1031 Exchange deadline."
+        ]
+      },
+      "1240": {
+        name: "Elena Rostova",
+        type: "Industrial REIT",
+        budget: "$20.0M - $35.0M",
+        cap: "6.5%+",
+        zoning: "Light Industrial / Warehouse",
+        time: "02:15 PM EST",
+        motivations: [
+          "Specific structural specs (28ft+ clear height)",
+          "Capital approved for immediate deployment ($30M)",
+          "Location near logistics corridors is priority"
+        ],
+        logs: [
+          "Call Note: Needs distribution centers near major interstates.",
+          "Email: Minimum 28ft clear height with dock doors.",
+          "Chat: Board approval secured for $30M deployment."
+        ]
+      }
+    };
+
+    const properties = [
+      { id: "PROP-1001", title: "Metro Gateway Plaza", address: "450 Congress Ave, Austin, TX", zoning: "Commercial / Mixed Use", price: "$14,500,000", cap: "7.4%", status: "Verified" },
+      { id: "PROP-1002", title: "Highland Park Residences", address: "1280 Colorado Blvd, Denver, CO", zoning: "High Density Residential", price: "$6,800,000", cap: "7.1%", status: "Verified" },
+      { id: "PROP-1003", title: "Interstate Logistics Hub", address: "8900 Logistics Pkwy, Atlanta, GA", zoning: "Light Industrial / Warehouse", price: "$24,500,000", cap: "6.8%", status: "Verified" }
+    ];
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+      
+      event.target.classList.add('active');
+      document.getElementById('tab-' + tabId).classList.add('active');
+    }
+
+    function updateCopilot() {
+      const id = document.getElementById('lead-select').value;
+      const lead = leads[id];
+      
+      document.getElementById('lead-details').innerHTML = `
+        <p style="font-size: 14px; color: #CBD5E1;">Budget: <strong>${lead.budget}</strong></p>
+        <p style="font-size: 14px; color: #CBD5E1;">Cap Target: <strong>${lead.cap}</strong> | Zoning: <strong>${lead.zoning}</strong></p>
+      `;
+
+      document.getElementById('motivations-list').innerHTML = lead.motivations.map(m => `<li>${m}</li>`).join('');
+
+      let matchedHtml = "";
+      properties.forEach(p => {
+        matchedHtml += `
+          <div class="prop-card">
+            <div class="prop-header">
+              <span class="prop-title">${p.title}</span>
+              <span class="badge-green">${p.price}</span>
+            </div>
+            <div class="prop-sub">${p.address}</div>
+            <div style="font-size: 12px; color: #CBD5E1;">Cap Rate: <strong>${p.cap}</strong> | Zoning: <strong>${p.zoning}</strong></div>
+          </div>
+        `;
+      });
+      document.getElementById('matched-props').innerHTML = matchedHtml;
+
+      document.getElementById('pitch-cue').innerHTML = `💡 <strong>Pitch Cue:</strong> Highlight matching cap rate (${lead.cap}) and verified compliance for fast Q4 closing.`;
+    }
+
+    function updateBrief() {
+      const id = document.getElementById('brief-select').value;
+      const lead = leads[id];
+
+      document.getElementById('brief-name').innerText = lead.name;
+      document.getElementById('brief-meta').innerText = `${lead.type} | Scheduled Call: ${lead.time}`;
+      document.getElementById('brief-budget').innerHTML = `<strong>Target Budget:</strong> ${lead.budget}`;
+      document.getElementById('brief-cap').innerHTML = `<strong>Target Cap Rate:</strong> ${lead.cap}`;
+      document.getElementById('brief-zoning').innerHTML = `<strong>Preferred Zoning:</strong> ${lead.zoning}`;
+
+      document.getElementById('brief-logs').innerHTML = lead.logs.map(l => `<p style="font-size: 13px; color: #CBD5E1; margin-bottom: 6px;">• ${l}</p>`).join('');
+    }
+
+    function renderListings() {
+      let tbody = "";
+      properties.forEach(p => {
+        tbody += `
+          <tr>
+            <td>${p.id}</td>
+            <td><strong>${p.title}</strong></td>
+            <td>${p.address}</td>
+            <td>${p.zoning}</td>
+            <td>${p.price}</td>
+            <td>${p.cap}</td>
+            <td><span class="badge-green">${p.status}</span></td>
+          </tr>
+        `;
+      });
+      document.getElementById('listings-tbody').innerHTML = tbody;
+    }
+
+    // Init
+    updateCopilot();
+    updateBrief();
+    renderListings();
+  </script>
+</body>
+</html>
