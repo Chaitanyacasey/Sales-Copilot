@@ -5,7 +5,7 @@ from rag_engine import SimpleRAGEngine
 
 # Page Configuration
 st.set_page_config(
-    page_title="Sales-Copilot",
+    page_title="Sales-Copilot-1",
     page_icon="⚡",
     layout="wide",
     initial_sidebar_state="collapsed"
